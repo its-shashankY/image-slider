@@ -1,0 +1,54 @@
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@200&display=swap');
+
+button{
+    width:50px;height:50px;border-radius:25px; 
+   background:url("https://img-premium.flaticon.com/png/128/738/premium/738853.png?token=exp=1627973211~hmac=961fa8c07b140012724601db3f7dc92c");
+    background-size:70%;
+    position:absolute;
+    margin-top:70%;content:"S";
+    margin-left:35%;border:1px solid black;
+    background-position:9px;
+    background-repeat:no-repeat;
+ outline:none;
+    box-shadow:1px 1px 10px grey;
+    transition:ease-in-out 0.8s;
+}
+
+#allValue{
+    width:80%;position:absolute;
+ height:0px;border-radius:30px 30px 0px 0px;
+    bottom:0px;overflow:hidden;
+    margin-left:0%;background:white;
+    box-shadow:1px 1px 8px lightgrey;
+    transition:ease-in-out 1s;
+}
+#image{
+    position:absolute;width:100%;height:auto;
+    left:0px;right:0px;top:-5px;
+}
+#allValue div{
+    margin-left:10px;
+    margin-top:10px;
+    width:80%;height:30px;
+    border:1px solid black;
+    border-radius:20px;
+    line-height:5px;font-size:15px;
+    line-height:0px;
+    font-family:'Poppins',sans-serif;
+    text-align:center;
+    vertical-align:top;
+}
+div input{
+    margin-left:10px;
+    margin-top:3px;
+}
+p{
+    width:35px;border:1px solid grey;
+    height:35px;margin-left:86%;
+    border-radius:25px;
+    margin-top:-12%;
+    text-align:center;
+    line-height:30px;
+    font-size:14px;
+    font-family:'poppins',sans-serif;
+}
