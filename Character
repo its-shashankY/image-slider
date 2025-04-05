@@ -1,0 +1,55 @@
+{
+	"textures": [
+		{
+			"image": "samurai_spritesheet.png",
+			"format": "RGBA8888",
+			"size": {
+				"w": 512, 
+				"h": 512 
+			},
+			"scale": 1,
+			"frames": [
+				{
+					"filename": "idle_0.png",
+					"rotated": false,
+					"trimmed": false,
+					"sourceSize": { "w": 64, "h": 64 },
+					"spriteSourceSize": { "x": 0, "y": 0, "w": 64, "h": 64 }, 
+					"frame": { "x": 10, "y": 10, "w": 64, "h": 64 } 
+				},
+				{
+					"filename": "idle_1.png",
+					"rotated": false,
+					"trimmed": false,
+					"sourceSize": { "w": 64, "h": 64 },
+					"spriteSourceSize": { "x": 0, "y": 0, "w": 64, "h": 64 },
+					"frame": { "x": 84, "y": 10, "w": 64, "h": 64 }
+				},
+				{
+					"filename": "attack_0_0.png",
+					"rotated": false,
+					"trimmed": false,
+					"sourceSize": { "w": 64, "h": 64 },
+					"spriteSourceSize": { "x": 0, "y": 0, "w": 64, "h": 64 },
+					"frame": { "x": 10, "y": 158, "w": 64, "h": 64 }
+				},
+				{
+					"filename": "special_attack_5.png",
+					"rotated": false,
+					"trimmed": false,
+					"sourceSize": { "w": 64, "h": 64 },
+					"spriteSourceSize": { "x": 0, "y": 0, "w": 64, "h": 64 },
+					"frame": { "x": 436, "y": 382, "w": 64, "h": 64 }
+				}
+			]
+		}
+	],
+	"meta": {
+		"app": "Manual Sprite Sheet Data",
+		"version": "1.0",
+		"image": "samurai_spritesheet.png",
+		"format": "RGBA8888",
+		"size": { "w": 512, "h": 512 }, 
+		"scale": 1
+	}
+}
