@@ -1,0 +1,111 @@
+{
+	"textures": [
+		{
+			"image": "Download84040 (2).png",
+			"format": "RGBA8888",
+			"size": {
+				"w": 836,
+				"h": 1331
+			},
+			"scale": 1,
+            "frames": [
+                {
+                    "filename": "cat_run_0.png",
+                "frame": {
+        "x": 0,
+        "y": 10,
+        "w": 140,
+        "h": 60
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 10,
+        "w": 140,
+        "h": 60
+      },
+      "sourceSize": {
+        "w": 2560,
+        "h": 1440
+      }
+                },
+                {
+                    "filename": "cat_run_1.png",
+                    "frame": {
+                      "x": 140,
+                      "y": 10,
+                      "w": 140,
+                      "h": 60
+                    },
+                    "rotated": false,
+                    "trimmed": false,
+                    "spriteSourceSize": {
+                      "x": 140,
+                      "y": 10,
+                      "w": 140,
+                      "h": 60
+                    },
+                    "sourceSize": {
+                      "w": 2560,
+                      "h": 1440
+                    }
+                  },
+                  {
+                    "filename": "cat_run_2.png",
+                  "frame": {
+        "x": 280,
+        "y": 10,
+        "w": 140,
+        "h": 60
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 280,
+        "y": 10,
+        "w": 140,
+        "h": 60
+      },
+      "sourceSize": {
+        "w": 2560,
+        "h": 1440
+      }
+                  },
+                  {
+                    "filename": "cat_run_3.png",
+                   "frame": {
+        "x": 420,
+        "y": 10,
+        "w": 140,
+        "h": 60
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 420,
+        "y": 10,
+        "w": 140,
+        "h": 60
+      },
+      "sourceSize": {
+        "w": 2560,
+        "h": 1440
+      }
+                  }
+                  
+            ]
+        }
+    ],
+    "meta": {
+	  "app": "sprite-sheet-to-json",
+	  "version": "1.0.0",
+	  "image": "Download84040 (2).png",
+	  "format": "RGBA8888",
+	  "size": {
+		"w": 836,
+		"h": 1341
+	  },
+	  "scale": "1"
+	}
+}
