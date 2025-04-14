@@ -1,0 +1,69 @@
+{
+	"textures": [
+		{
+			"image": "Download84040 (2).png",
+			"format": "RGBA8888",
+			"size": {
+				"w": 836,
+				"h": 1331
+			},
+			"scale": 1,
+            "frames": [
+                {
+                    "filename": "box_0.png",
+             "frame": {
+        "x": 4,
+        "y": 30,
+        "w": 75,
+        "h": 45
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 4,
+        "y": 30,
+        "w": 75,
+        "h": 45
+      },
+      "sourceSize": {
+        "w": 2560,
+        "h": 1440
+      }
+                },
+                {
+                    "filename": "box_1.png",
+                    "frame": {
+                      "x": 79,
+                      "y": 30,
+                      "w": 75,
+                      "h": 45
+                    },
+                    "rotated": false,
+                    "trimmed": false,
+                    "spriteSourceSize": {
+                      "x": 79,
+                      "y": 30,
+                      "w": 75,
+                      "h": 45
+                    },
+                    "sourceSize": {
+                      "w": 2560,
+                      "h": 1440
+                    }
+                  }
+                  
+            ]
+        }
+    ],
+    "meta": {
+	  "app": "sprite-sheet-to-json",
+	  "version": "1.0.0",
+	  "image": "Download84040 (2).png",
+	  "format": "RGBA8888",
+	  "size": {
+		"w": 836,
+		"h": 1341
+	  },
+	  "scale": "1"
+	}
+}
