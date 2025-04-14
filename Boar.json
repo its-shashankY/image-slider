@@ -114,7 +114,28 @@
                       "h": 491
                     }
                   }
-                  
+                  ,
+		     {
+                    "filename": "boar_idle_0.png",
+                    "frame": {
+        "x": 101,
+        "y": 360,
+        "w": 50,
+        "h": 40
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 101,
+        "y": 360,
+        "w": 50,
+        "h": 40
+      },
+      "sourceSize": {
+        "w": 393,
+        "h": 491
+      }
+                  }
             ]
         }
     ],
