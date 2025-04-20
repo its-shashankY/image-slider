@@ -1,0 +1,2366 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Phaser Tilemap Example</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/phaser/3.55.2/phaser.min.js"></script>
+    <link rel="stylesheet" href="style.css"></link>
+</head>
+<body>
+    <div id="game-container">
+
+    </div>
+
+    <script>
+      // Create a new Phaser game instance
+      const config = {
+    type: Phaser.AUTO,
+    width: 3200, // Set width to the full screen width
+    height: 1600, // Set height to the full screen height
+    parent: 'game-container',
+    scene: {
+        preload: preload,
+        create: create,
+        update: update
+    },
+    physics: {
+        default: 'arcade',
+        arcade: {
+            gravity: { y: 0 },
+            debug: false
+        }
+    },
+    scale: {
+        mode: Phaser.Scale.FIT,
+        autoCenter: Phaser.Scale.CENTER_BOTH,
+    },
+};
+
+let cursors;
+let player;
+let healthBar;
+let currentHealth = 100;
+let isAttacking = false;
+const maxHealth = 100;
+let hasBoarGem = false;
+let hasFoxGem = false;
+let hasCatGem = false;
+let hasMonsterGem = false;
+let gemsCollected = {
+    boar_1: false,
+    boar_2: false,
+    fox_1: false,
+    cat_1: false,
+    monster_1 : false
+};
+
+const BOAR_MAX_HEALTH = 100;
+const FOX_MAX_HEALTH = 80;
+const CAT_MAX_HEALTH = 60;
+let boars = [];
+
+let lastDamageTime = 0;
+const DAMAGE_COOLDOWN = 2000; // 4 seconds in milliseconds
+const FLASH_DURATION = 200; // Duration of red flash effect
+
+// Add these constants at the top
+const QUIZ_THRESHOLD = 6;
+const QUIZ_TOTAL = 10;
+
+// Add quiz questions with multiple choice options
+const BOAR_QUIZZES = {
+    boar_1: [
+        {
+            question: "What is the maximum health of boars?",
+            options: ["50", "100", "150", "200"],
+            correct: 1  // Index of correct answer (100)
+        },
+        {
+            question: "What is the boar chase distance?",
+            options: ["100", "150", "200", "250"],
+            correct: 2  // 200
+        },
+        {
+            question: "How many boars are there initially?",
+            options: ["5", "6", "7", "8"],
+            correct: 2  // 7
+        },
+        {
+            question: "What is the boar base speed?",
+            options: ["70", "80", "90", "100"],
+            correct: 2  // 90
+        },
+        {
+            question: "What is minimum distance boars maintain from player?",
+            options: ["3", "5", "7", "10"],
+            correct: 1  // 5
+        },
+        {
+            question: "How much health does boar attack reduce?",
+            options: ["1/10", "1/15", "1/20", "1/25"],
+            correct: 2  // 1/20
+        },
+        {
+            question: "Are boars faster than cats?",
+            options: ["Yes", "No", "Same Speed", "Depends"],
+            correct: 1  // No
+        },
+        {
+            question: "How many frames are in boar run animation?",
+            options: ["2", "3", "4", "5"],
+            correct: 2  // 4
+        },
+        {
+            question: "Do boars return to original position?",
+            options: ["Yes", "No", "Sometimes", "Never"],
+            correct: 0  // Yes
+        },
+        {
+            question: "What happens when boar health reaches 0?",
+            options: ["Respawn", "Die", "Heal", "Nothing"],
+            correct: 1  // Die
+        }
+    ],
+    boar_2: [
+        {
+            question: "What is the fastest boar's speed?",
+            options: ["90", "100", "110", "120"],
+            correct: 3  // 120
+        },
+        {
+            question: "What is the slowest boar's speed?",
+            options: ["50", "60", "70", "80"],
+            correct: 1  // 60
+        },
+        {
+            question: "How many boars have speed 60?",
+            options: ["2", "3", "4", "5"],
+            correct: 2  // 4
+        },
+        {
+            question: "What happens when boars get damaged?",
+            options: ["Flash Red", "Flash Blue", "Flash Green", "No Flash"],
+            correct: 0  // Flash Red
+        },
+        {
+            question: "How long does damage cooldown last?",
+            options: ["1s", "2s", "3s", "4s"],
+            correct: 1  // 2s
+        },
+        {
+            question: "What is the chase radius for boars?",
+            options: ["10", "15", "20", "25"],
+            correct: 2  // 20
+        },
+        {
+            question: "Do boars have health bars?",
+            options: ["Yes", "No", "Sometimes", "Only when damaged"],
+            correct: 0  // Yes
+        },
+        {
+            question: "What color is boar's health bar when full?",
+            options: ["Red", "Blue", "Green", "Yellow"],
+            correct: 2  // Green
+        },
+        {
+            question: "How much damage does F key do to boars?",
+            options: ["1/3", "1/4", "1/5", "1/6"],
+            correct: 2  // 1/5
+        },
+        {
+            question: "Do boars collide with buildings?",
+            options: ["Yes", "No", "Sometimes", "Only when chasing"],
+            correct: 0  // Yes
+        }
+    ]
+};
+
+const FOX_QUIZZES = {
+    fox_1: [
+        {
+            question: "What is the maximum health of foxes?",
+            options: ["60", "70", "80", "90"],
+            correct: 2  // 80
+        },
+        {
+            question: "What is the fox chase distance?",
+            options: ["200", "225", "250", "275"],
+            correct: 2  // 250
+        },
+        {
+            question: "How many foxes are there initially?",
+            options: ["2", "3", "4", "5"],
+            correct: 1  // 3
+        },
+        {
+            question: "What is the fox base speed?",
+            options: ["120", "130", "140", "150"],
+            correct: 2  // 140
+        },
+        {
+            question: "What is minimum distance foxes maintain from player?",
+            options: ["30", "35", "40", "45"],
+            correct: 2  // 40
+        },
+        {
+            question: "What damage do foxes take with boar gem?",
+            options: ["1/3", "1/4", "1/5", "1/6"],
+            correct: 1  // 1/4
+        },
+        {
+            question: "What damage do foxes take without boar gem?",
+            options: ["1/10", "1/15", "1/20", "1/25"],
+            correct: 1  // 1/15
+        },
+        {
+            question: "Are foxes faster than cats?",
+            options: ["Yes", "No", "Same Speed", "Depends"],
+            correct: 1  // No
+        },
+        {
+            question: "What's the speed of the fastest fox?",
+            options: ["90", "100", "110", "120"],
+            correct: 2  // 110
+        },
+        {
+            question: "What's the speed of the slowest fox?",
+            options: ["40", "50", "60", "70"],
+            correct: 1  // 50
+        }
+    ]
+};
+
+const CAT_QUIZZES = {
+    cat_1: [
+        {
+            question: "What is the maximum health of cats?",
+            options: ["50", "60", "70", "80"],
+            correct: 1  // 60
+        },
+        {
+            question: "What is the cat chase distance?",
+            options: ["160", "170", "180", "190"],
+            correct: 2  // 180
+        },
+        {
+            question: "How many cats are there initially?",
+            options: ["2", "3", "4", "5"],
+            correct: 1  // 3
+        },
+        {
+            question: "What is the cat base speed?",
+            options: ["140", "150", "160", "170"],
+            correct: 2  // 160
+        },
+        {
+            question: "What is minimum distance cats maintain from player?",
+            options: ["25", "30", "35", "40"],
+            correct: 2  // 35
+        },
+        {
+            question: "What's the speed of the fastest cat?",
+            options: ["60", "65", "70", "75"],
+            correct: 3  // 75
+        },
+        {
+            question: "What's the speed of the slowest cat?",
+            options: ["55", "60", "65", "70"],
+            correct: 1  // 60
+        },
+        {
+            question: "Are cats faster than foxes?",
+            options: ["Yes", "No", "Same Speed", "Depends"],
+            correct: 0  // Yes
+        },
+        {
+            question: "What's the cat's scale size?",
+            options: ["0.5", "0.6", "0.7", "0.8"],
+            correct: 2  // 0.7
+        },
+        {
+            question: "Do cats have idle animation?",
+            options: ["Yes", "No", "Sometimes", "Only when damaged"],
+            correct: 0  // Yes
+        }
+    ]
+};
+
+const MONSTER_QUIZZES = {
+    monster_1: [
+        {
+            question: "What is the maximum health of the monster?",
+            options: ["150", "175", "200", "225"],
+            correct: 2  // 200
+        },
+        {
+            question: "What is the monster chase distance?",
+            options: ["250", "275", "300", "325"],
+            correct: 2  // 300
+        },
+        {
+            question: "What is the monster's base speed?",
+            options: ["60", "70", "80", "90"],
+            correct: 1  // 70
+        },
+        {
+            question: "Does monster have up animation?",
+            options: ["Yes", "No", "Sometimes", "Only when attacking"],
+            correct: 0  // Yes
+        },
+        {
+            question: "How many animations does monster have?",
+            options: ["2", "3", "4", "5"],
+            correct: 2  // 4 (up, down, left, right)
+        },
+        {
+            question: "What's the monster's scale size?",
+            options: ["1.0", "1.1", "1.2", "1.3"],
+            correct: 3  // 1.3
+        },
+        {
+            question: "Is monster faster than boars?",
+            options: ["Yes", "No", "Same Speed", "Depends"],
+            correct: 1  // No (70 vs 90)
+        },
+        {
+            question: "Does monster return to original position?",
+            options: ["Yes", "No", "Sometimes", "Only when damaged"],
+            correct: 0  // Yes
+        },
+        {
+            question: "Does monster have idle animation?",
+            options: ["Yes", "No", "Uses first frame", "None"],
+            correct: 2  // Uses first frame
+        },
+        {
+            question: "Is monster the strongest enemy?",
+            options: ["Yes", "No", "Equal to others", "Depends"],
+            correct: 0  // Yes (highest health)
+        }
+    ]
+};
+
+const CHASE_DISTANCE = 200;  // Distance in pixels when boar starts chasing
+const BOAR_SPEED = 90;      // Boar movement speed
+const BOAR_POSITIONS = [    // Define different spawn positions and speeds for boars
+    { x: 800, y: 1000, speed: 120 },  // Fast boar
+    { x: 800, y: 1100, speed: 70 },   // Slow boar
+    { x: 850, y: 1150, speed: 90 },   // Medium speed boar
+    { x: 900, y: 1200, speed: 60 },   // Slightly fast boar
+    { x: 600, y: 1200, speed: 60 },
+    { x: 700, y: 1200, speed: 60 },
+    { x: 550, y: 1200, speed: 60 }
+];
+
+
+let foxes = [];
+const FOX_SPEED = 140;  // Foxes are faster than boars
+const FOX_CHASE_DISTANCE = 250;  // Foxes detect from further away
+const FOX_POSITIONS = [    // Define different spawn positions and speeds for foxes
+    { x: 2200, y: 1200, speed: 50 },  // Fast fox
+    { x: 2300, y: 1100, speed: 80 },  // Slower fox
+    { x: 2400, y: 1200, speed: 110 }   // Medium speed fox
+];
+
+let cats = [];
+const CAT_SPEED = 160;  // Cats are the fastest
+const CAT_CHASE_DISTANCE = 180;  // Cats have medium detection range
+const CAT_POSITIONS = [    // Define different spawn positions and speeds for cats
+    { x: 2650, y: 750, speed: 70 },  // Fast cat
+    { x: 2700, y: 700, speed: 60 },  // Medium speed cat
+    { x: 2800, y: 800, speed: 75 }   // Quick cat
+];
+
+// Update MAGIC_BOX_POSITIONS to include monster box
+const MAGIC_BOX_POSITIONS = [
+    { x: 500, y: 800, type: 'boar_1' },
+    { x: 700, y: 800, type: 'boar_2' },
+    { x: 2300, y: 800, type: 'fox_1' },
+    { x: 2600, y: 800, type: 'cat_1' },
+    { x: 2800, y: 400, type: 'monster_1' }
+];
+
+
+let popupText;
+let popupBackground;
+let isShowingPopup = false;
+
+let monster;
+const MONSTER_MAX_HEALTH = 200;  // Monster is strongest
+const MONSTER_SPEED = 70;
+const MONSTER_CHASE_DISTANCE = 300; 
+let runningSound;
+
+const game = new Phaser.Game(config);
+
+function preload() {
+    // Load the tilemap JSON file
+    this.load.tilemapTiledJSON('dungeon', 'https://raw.githubusercontent.com/its-shashankY/image-slider/refs/heads/master/wholemap.json');
+    this.load.atlas('faune', 'https://raw.githubusercontent.com/its-shashankY/TravelApp/refs/heads/main/Download84040%20(2).png', 'https://raw.githubusercontent.com/its-shashankY/TravelApp/refs/heads/main/samurai.json');
+    this.load.atlas('boar','https://raw.githubusercontent.com/its-shashankY/image-slider/refs/heads/master/165586.png','https://raw.githubusercontent.com/its-shashankY/image-slider/refs/heads/master/Boar.json');
+    this.load.atlas('Fox','https://raw.githubusercontent.com/its-shashankY/image-slider/refs/heads/master/New%20Project%20(2).png','https://raw.githubusercontent.com/its-shashankY/image-slider/refs/heads/master/Fox.json');
+    this.load.atlas('Cat','https://raw.githubusercontent.com/its-shashankY/image-slider/refs/heads/master/New%20Project%20(3).png','https://raw.githubusercontent.com/its-shashankY/image-slider/refs/heads/master/cat.json');
+    this.load.atlas('magic-box', 
+        'https://raw.githubusercontent.com/its-shashankY/image-slider/refs/heads/master/New%20Project%20(4).png',
+        'https://raw.githubusercontent.com/its-shashankY/image-slider/refs/heads/master/Box.json'
+    );
+    this.load.image('game-logo', 'https://raw.githubusercontent.com/its-shashankY/image-slider/refs/heads/master/Remove%20background%20project%20(1).png');
+    this.load.image('settings-icon', 'https://png.pngtree.com/png-vector/20220824/ourmid/pngtree-pixel-art-setting-icon-design-vector-png-image_6122162.png');
+    this.load.audio('box-open-sound', 'https://cdn.pixabay.com/audio/2024/10/12/audio_515090dc3c.mp3');
+    this.load.audio('running', 'https://cdn.pixabay.com/audio/2022/01/18/audio_e525a21f2d.mp3');
+    this.load.audio('boar-sound', 'https://cdn.pixabay.com/audio/2025/04/11/audio_8bf56685f6.mp3');
+    this.load.audio('fox-sound', 'https://cdn.pixabay.com/audio/2025/04/04/audio_7046afd9ef.mp3');
+    this.load.audio('punch', 'https://cdn.pixabay.com/audio/2022/03/15/audio_7143375ab8.mp3');
+    this.load.audio('hurt','https://cdn.pixabay.com/audio/2022/03/10/audio_5ec86ec3e7.mp3')
+    this.load.audio('cat-sound', 'https://cdn.pixabay.com/audio/2024/03/13/audio_f538b88505.mp3');
+    this.load.audio('background-music', 'https://cdn.pixabay.com/audio/2023/03/03/audio_3a3d0b12da.mp3');
+    this.load.audio('monster-sound','https://raw.githubusercontent.com/its-shashankY/TravelApp/refs/heads/main/omae-wa-mou-shindeiru.mp3')
+    this.load.atlas('Monster','https://raw.githubusercontent.com/its-shashankY/image-slider/refs/heads/master/Download62124.png','https://raw.githubusercontent.com/its-shashankY/TravelApp/refs/heads/main/samurai.json');
+    // Load all tileset images
+    this.load.image('water_tiles', 'https://raw.githubusercontent.com/its-shashankY/image-slider/refs/heads/master/water_and_island_tiles_v2.png');
+    this.load.image('grass_tiles', 'https://raw.githubusercontent.com/its-shashankY/TravelApp/refs/heads/main/Grass.png');
+    this.load.image('tilemap_tiles', 'https://raw.githubusercontent.com/its-shashankY/TravelApp/refs/heads/main/Tilemap.png');
+    this.load.image('building_tiles', 'https://raw.githubusercontent.com/its-shashankY/TravelApp/refs/heads/main/Adobe%20Express%20-%20file%20(11).png');
+    this.load.image('asset_tiles','https://raw.githubusercontent.com/its-shashankY/TravelApp/refs/heads/main/assets_spritesheet_v2_free.png');
+    this.load.image('mountain_tiles','https://raw.githubusercontent.com/its-shashankY/TravelApp/refs/heads/main/Adobe%20Express%20-%20file%20(12).png');
+    // Load any additional tilesets if needed
+    // this.load.image('additional_tileset', 'path/to/additional/tileset.png');
+}
+
+// First, let's create a container for the game logo and quiz
+function createQuizContainer(scene) {
+    // Create container div with the game logo as background
+    const logoContainer = document.createElement('div');
+    logoContainer.style.position = 'absolute';
+    logoContainer.style.top = '50%';
+    logoContainer.style.left = '50%';
+    logoContainer.style.transform = 'translate(-50%, -50%)';
+    logoContainer.style.width = '1300px';  // Adjust based on logo size
+    logoContainer.style.height = '700px';  // Adjust based on logo size
+    logoContainer.style.backgroundImage = "url('https://raw.githubusercontent.com/its-shashankY/image-slider/refs/heads/master/Remove%20background%20project%20(1).png')";
+    logoContainer.style.backgroundSize = 'contain';
+    logoContainer.style.backgroundRepeat = 'no-repeat';
+    logoContainer.style.backgroundPosition = 'center';
+    logoContainer.style.display = 'flex';
+    logoContainer.style.alignItems = 'center';
+    logoContainer.style.justifyContent = 'center';
+    
+    return logoContainer;
+}
+
+
+
+function create() {
+    // Create the tilemap from the loaded JSON
+    const map = this.make.tilemap({ key: 'dungeon' });
+
+    // Set camera bounds to match the map size
+    this.cameras.main.setBounds(0, 0, map.widthInPixels, map.heightInPixels);
+
+    // Center the camera on the map
+    this.cameras.main.centerOn(map.widthInPixels / 2, map.heightInPixels / 2);
+
+    // Add tilesets
+    const waterTileset = map.addTilesetImage('Water', 'water_tiles');
+    const grassTileset = map.addTilesetImage('Grass', 'grass_tiles');
+    const buildingTileset = map.addTilesetImage('Building', 'building_tiles');
+    const assetTileset = map.addTilesetImage('Asset', 'asset_tiles');
+    const mountainTileset = map.addTilesetImage('Mountain', 'mountain_tiles');
+    const TileMapTileset = map.addTilesetImage('Tilemap', 'tilemap_tiles');
+
+    // Store tilesets in an array if you have multiple
+    const tilesets = [waterTileset, grassTileset, buildingTileset, assetTileset, mountainTileset, TileMapTileset];
+
+    // Create layers
+    const groundLayer = map.createLayer('Ground', tilesets, 0, 0);
+    const BoatLayer = map.createLayer('Boat', tilesets, 0, 0);
+    const buildingLayer = map.createLayer('Building', tilesets, 0, 0);
+
+    // Set collision for layers
+    buildingLayer.setCollisionByProperty({ collides: true });
+    groundLayer.setCollisionByProperty({ collides: true });
+    groundLayer.setCollisionByExclusion([-1]); // This ensures all tiles collide except empty ones
+    buildingLayer.setCollisionByExclusion([-1]); // This ensures all tiles collide except empty ones
+
+
+    runningSound = this.sound.add('running', {
+        volume: 0.4,
+        loop: true,
+        rate: 1
+    });
+
+    boxOpenSound = this.sound.add('box-open-sound', {
+        volume: 0.5
+    });
+
+    this.boarRunSound = this.sound.add('boar-sound', {
+        volume: 0.5,
+        loop: true,
+        rate: 1.5  // Slightly faster rate for boar sound
+    });
+
+    this.catRunSound = this.sound.add('cat-sound', {
+        volume: 0.3,
+        loop: true,
+        rate: 1.5  // Slightly faster rate for cat sound
+    });
+
+    this.foxRunSound = this.sound.add('fox-sound', {
+        volume: 0.3,
+        loop: true,
+        rate: 1.5  // Slightly faster rate for fox sound
+    });
+
+    punchSound = this.sound.add('punch', {
+        volume: 0.5,
+        rate: 1.2
+    });
+
+    hurtSound = this.sound.add('hurt', {
+        volume: 0.5
+    });
+
+    monsterSound = this.sound.add('monster-sound', {
+        volume: 0.5,
+        loop: false
+    });
+
+    const backgroundMusic = this.sound.add('background-music', {
+        volume: 0.3,
+        loop: true
+    });
+    
+    // Start playing when game loads
+    backgroundMusic.play();
+    
+    console.log('Creating settings button...');
+    
+    const settingsBtn = this.add.image(
+        this.cameras.main.width - 50, 
+        50, 
+        'settings-icon'
+    )
+    .setScrollFactor(0)
+    .setScale(0.1)
+    .setInteractive()
+    .setDepth(9999)
+    .setAlpha(1); // Full opacity
+
+    // Debug log button properties
+    console.log('Settings button properties:', {
+        x: settingsBtn.x,
+        y: settingsBtn.y,
+        scale: settingsBtn.scale,
+        depth: settingsBtn.depth,
+        visible: settingsBtn.visible,
+        alpha: settingsBtn.alpha
+    });
+
+    // Make sure texture loaded properly
+    if (!this.textures.exists('settings-icon')) {
+        console.error('Settings icon texture not loaded!');
+    }
+
+    // Add visible hover debug
+    settingsBtn.on('pointerover', () => {
+        console.log('Button hover!');
+        settingsBtn.setAlpha(1);
+        settingsBtn.setScale(0.12);
+    });
+
+    settingsBtn.on('pointerout', () => {
+        console.log('Button hover out!');
+        settingsBtn.setAlpha(0.8);
+        settingsBtn.setScale(0.1);
+    });
+
+    settingsBtn.on('pointerdown', () => {
+        console.log('Button clicked!');
+        createSettingsMenu(this);
+    });
+
+    // Position relative to camera
+    settingsBtn.setPosition(
+        this.cameras.main.width - 100, // 100px from right edge
+        100                            // 100px from top
+    );
+
+    BOAR_POSITIONS.forEach(pos => {
+        const boar = this.physics.add.sprite(pos.x, pos.y, 'boar', 'boar_run_0.png');
+        boar.setCollideWorldBounds(true);
+        boar.body.setSize(boar.width * 0.6, boar.height * 0.6);
+        boar.body.setOffset(8, 16);
+        boar.setFlipX(true); // Make boar face left by default
+    
+        
+        // Add collisions for each boar
+        this.physics.add.collider(boar, buildingLayer);
+        this.physics.add.collider(boar, groundLayer);
+        this.physics.add.collider(boar, player);
+        
+        // Set initial state
+        boar.isChasing = false;
+        boar.originalPosition = { x: pos.x, y: pos.y };
+        boar.speed = pos.speed;
+        
+        boar.health = BOAR_MAX_HEALTH;
+        const healthBar = createHealthBar(this, boar, BOAR_MAX_HEALTH);
+        boar.healthBar = healthBar;
+
+        boars.push(boar);
+    });
+
+    this.anims.create({
+    key: 'monster-run-up',
+    frames: this.anims.generateFrameNames('Monster', {
+        start: 1,
+        end: 8,
+        prefix: 'run_down_',
+        suffix: '.png'
+    }),
+    frameRate: 10,
+    repeat: -1
+});
+
+this.anims.create({
+    key: 'faune-death',
+    frames: this.anims.generateFrameNames('faune', {
+        start: 0,
+        end: 5,
+        prefix: 'faune_fight_dead_',
+        suffix: '.png'
+    }),
+    frameRate:240,
+    repeat: 0
+});
+
+
+    this.anims.create({
+        key: 'monster-run-down',
+        frames: this.anims.generateFrameNames('Monster', {
+            start: 3,
+            end: 8,
+            prefix: 'run_up_',
+            suffix: '.png'
+        }),
+        frameRate: 10,
+        repeat: -1
+    });
+
+    this.anims.create({
+        key: 'monster-run-left',
+        frames: this.anims.generateFrameNames('Monster', {
+            start: 1,
+            end: 8,
+            prefix: 'run_left_',
+            suffix: '.png'
+        }),
+        frameRate: 10,
+        repeat: -1
+    });
+
+    this.anims.create({
+    key: 'faune-fight-left',
+    frames: this.anims.generateFrameNames('faune', {
+        start: 0,
+        end: 12,
+        prefix: 'faune_fight_left_',
+        suffix: '.png'
+    }),
+    frameRate: 360,
+    repeat: 0  // Don't repeat the animation
+});
+
+    this.anims.create({
+        key: 'boar-run',
+        frames: this.anims.generateFrameNames('boar', {
+            start: 0,
+            end: 3,
+            prefix: 'boar_run_',
+            suffix: '.png'
+        }),
+        frameRate: 10,
+        repeat: -1
+    });
+
+    this.anims.create({
+        key: 'box-open',
+        frames: this.anims.generateFrameNames('magic-box', {
+            start: 0,
+            end: 1,
+            prefix: 'box_',
+            suffix: '.png'
+        }),
+        frameRate: 10
+    });
+
+    this.anims.create({
+    key: 'boar-idle',
+    frames: [{ key: 'boar', frame: 'boar_idle_0.png' }],
+    frameRate: 10
+});
+
+this.anims.create({
+        key: 'fox-run',
+        frames: this.anims.generateFrameNames('Fox', {
+            start: 0,
+            end: 4,
+            prefix: 'fox_run_',
+            suffix: '.png'
+        }),
+        frameRate: 10,
+        repeat: -1
+    });
+
+    this.anims.create({
+        key: 'fox-idle',
+        frames: [{ key: 'Fox', frame: 'fox_idle_0.png' }],
+        frameRate: 10
+    });
+
+    this.anims.create({
+        key: 'cat-run',
+        frames: this.anims.generateFrameNames('Cat', {
+            start: 0,
+            end: 3,
+            prefix: 'cat_run_',
+            suffix: '.png'
+        }),
+        frameRate: 10,
+        repeat: -1
+    });
+
+    this.anims.create({
+        key: 'cat-idle',
+        frames: [{ key: 'Cat', frame: 'cat_run_0.png' }],
+        frameRate: 10
+    });
+
+    // Create foxes
+    FOX_POSITIONS.forEach(pos => {
+        const fox = this.physics.add.sprite(pos.x, pos.y, 'Fox', 'fox_idle_0.png');
+        fox.setCollideWorldBounds(true);
+        fox.body.setSize(fox.width * 0.6, fox.height * 0.6);
+        fox.setScale(0.8);
+        fox.body.setOffset(8, 16);
+        fox.setFlipX(true); // Make fox face left by default
+        
+        // Add collisions for each fox
+        this.physics.add.collider(fox, buildingLayer);
+        this.physics.add.collider(fox, groundLayer);
+        this.physics.add.collider(fox, player);
+        
+        // Set initial state
+        fox.isChasing = false;
+        fox.originalPosition = { x: pos.x, y: pos.y };
+        fox.speed = pos.speed;
+        fox.health = FOX_MAX_HEALTH;
+        const healthBar = createHealthBar(this, fox, FOX_MAX_HEALTH);
+        fox.healthBar = healthBar;
+        
+        foxes.push(fox);
+    });
+
+    CAT_POSITIONS.forEach(pos => {
+        const cat = this.physics.add.sprite(pos.x, pos.y, 'Cat', 'cat_idle_0.png');
+        cat.setCollideWorldBounds(true);
+        cat.setScale(0.7);
+        cat.body.setSize(cat.width * 0.5, cat.height * 0.5); // Smaller collision box for cat
+        cat.body.setOffset(10, 18);
+        cat.setFlipX(true); // Make cat face left by default
+        
+        // Add collisions for each cat
+        this.physics.add.collider(cat, buildingLayer);
+        this.physics.add.collider(cat, groundLayer);
+        this.physics.add.collider(cat, player);
+
+        cat.health = CAT_MAX_HEALTH;
+        const healthBar = createHealthBar(this, cat, CAT_MAX_HEALTH);
+        cat.healthBar = healthBar;
+            
+        // Set initial state
+        cat.isChasing = false;
+        cat.originalPosition = { x: pos.x, y: pos.y };
+        cat.speed = pos.speed;
+        
+        cats.push(cat);
+    });
+
+
+    
+
+      const debugGraphics = this.add.graphics().setAlpha(0.5);
+    // buildingLayer.renderDebug(debugGraphics, {
+    //     tileColor: null,    // Color of non-colliding tiles
+    //     collidingTileColor: new Phaser.Display.Color(243, 34, 34), // Red color for colliding tiles
+    //     faceColor: new Phaser.Display.Color(243, 34, 34, 0.2)      // Color of face edges
+    // });
+    // Add the player sprite
+    player = this.physics.add.sprite(2000, 800, 'faune', 'idle_down_4.png');
+
+     MAGIC_BOX_POSITIONS.forEach(boxInfo => {
+        const magicBox = this.physics.add.sprite(boxInfo.x, boxInfo.y, 'magic-box');
+        magicBox.setScale(0.6);
+        magicBox.setCollideWorldBounds(true);
+        magicBox.body.setImmovable(true);
+        magicBox.isOpened = false;
+        magicBox.type = boxInfo.type;
+        
+        // Add collision detection with player
+        this.physics.add.collider(player, magicBox, handleBoxCollision, null, this);
+    });
+
+// Create single monster (add this in create function)
+monster = this.physics.add.sprite(2000, 200, 'Monster', 'Mon_Run_0.png');
+monster.setCollideWorldBounds(true);
+monster.setScale(1.3);
+monster.body.setSize(monster.width * 0.6, monster.height * 0.6);
+monster.body.setOffset(12, 18);
+monster.setFlipX(true);
+
+// Add health and health bar
+monster.health = MONSTER_MAX_HEALTH;
+const healthBarX = createHealthBar(this, monster, MONSTER_MAX_HEALTH);
+monster.healthBar = healthBarX;
+
+// Set initial state
+monster.isChasing = false;
+monster.originalPosition = { x: 1500, y: 1500 };
+monster.speed = MONSTER_SPEED;
+
+// Add collisions
+this.physics.add.collider(monster, buildingLayer);
+this.physics.add.collider(monster, groundLayer);
+
+    // const magicBox = this.physics.add.sprite(2000, 800, 'magic-box');
+    // magicBox.setScale(0.6);
+    // magicBox.setCollideWorldBounds(true);
+    // magicBox.body.setImmovable(true); // Make the box immovable
+    // magicBox.isOpened = false;
+    
+    // // Add collision detection with player
+    // this.physics.add.collider(player, magicBox, handleBoxCollision, null, this);
+    const healthBarWidth = 40;
+    const healthBarHeight = 4;
+    const healthBarOffset = -20; // Position above player
+
+    // Background of health bar (red)
+    const healthBarBackground = this.add.rectangle(
+        0,
+        0,
+        healthBarWidth,
+        healthBarHeight,
+        0xff0000
+    );
+
+    // Foreground of health bar (green)
+    healthBar = this.add.rectangle(
+        0,
+        0,
+        healthBarWidth,
+        healthBarHeight,
+        0x00ff00
+    );
+
+    // Create a container to group the health bar parts
+    const healthBarContainer = this.add.container(
+        player.x,
+        player.y + healthBarOffset+20,
+        [healthBarBackground, healthBar]
+    );
+
+    // Set the depth to ensure it's visible above the game world
+    healthBarContainer.setDepth(100);
+
+    // Update health bar position in the game loop
+    this.events.on('update', () => {
+        healthBarContainer.setPosition(
+            player.x,
+            player.y + healthBarOffset
+        );
+        // Update health bar width based on current health
+        healthBar.width = (currentHealth / maxHealth) * healthBarWidth;
+    });
+    
+
+    // Enable physics for the player
+    player.setCollideWorldBounds(true); // Prevents player from leaving the game world
+    // player.setScale(1); 
+    // Add collision between player and building layer
+    this.physics.add.collider(player, buildingLayer);
+    this.physics.add.collider(player, groundLayer);
+    this.cameras.main.startFollow(player, true);
+    this.cameras.main.setZoom(3);
+    this.cameras.main.setLerp(0.1, 0.1);
+    this.cameras.main.setBounds(0, 0, map.widthInPixels, map.heightInPixels);
+    this.cameras.main.centerOn(player.x, player.y);
+
+    // Adjust player's body size and offset if needed
+    player.body.setSize(player.width * 0.5, player.height * 0.8); // Adjust hitbox size
+    player.body.setOffset(8, 16);
+    // Create animations for the character
+    // this.anims.create({
+    //     key: 'idle',
+    //     frames: [{ key: 'faune', frame: 'idle_down_4.png' }],
+    //     frameRate: 10,
+    //     repeat: -1
+    // });
+
+    this.anims.create({
+            key: 'faune-run-down',
+            frames: this.anims.generateFrameNames('faune', {
+                start: 1,
+                end: 8,
+                prefix: 'run_down_',
+                suffix: '.png'
+            }),
+            frameRate: 10
+        });
+
+     this.anims.create({
+            key: 'faune-run-up',
+            frames: this.anims.generateFrameNames('faune', {
+                start: 1,
+                end: 8,
+                prefix: 'run_up_',
+                suffix: '.png'
+            }),
+            frameRate: 10
+        });
+
+    this.anims.create({
+        key: 'faune-left-side',
+        frames: this.anims.generateFrameNames('faune', {
+            start: 1,
+            end: 8,
+            prefix: 'run_left_',
+            suffix: '.png'
+        }),
+        frameRate: 10,
+        repeat: -1
+    });
+
+    // this.anims.create({
+    //     key: 'faune-run-up',
+    //     frames: this.anims.generateFrameNames('faune', {
+    //         start: 1,
+    //         end: 3,
+    //         prefix: 'walk-up-',
+    //         suffix: '.png'
+    //     }),
+    //     frameRate: 10,
+    //     repeat: -1
+    // });
+
+    // this.anims.create({
+    //     key: 'faune-run-left',
+    //     frames: this.anims.generateFrameNames('faune', {
+    //         start: 1,
+    //         end: 3,
+    //         prefix: 'run-left-',
+    //         suffix: '.png'
+    //     }),
+    //     frameRate: 10,
+    //     repeat: -1
+    // });
+
+    // this.anims.create({
+    //     key: 'faune-run-right',
+    //     frames: this.anims.generateFrameNames('faune', {
+    //         start: 1,
+    //         end: 3,
+    //         prefix: 'run-right-',
+    //         suffix: '.png'
+    //     }),
+    //     frameRate: 10,
+    //     repeat: -1
+    // });
+
+    // // Play the idle animation by default
+    // player.play('idle');
+
+      // Create world borders using static physics bodies
+      const borderThickness = 32;
+    const worldWidth = map.widthInPixels;
+    const worldHeight = map.heightInPixels;
+
+    // Create border group
+    const borders = this.physics.add.staticGroup();
+
+    // Create borders as static physics bodies
+    const topBorder = borders.create(worldWidth/2, 0, 'tilemap_tiles')
+        .setDisplaySize(worldWidth, borderThickness)
+        .setImmovable(true)
+        .refreshBody();
+
+    const bottomBorder = borders.create(worldWidth/2, worldHeight, 'tilemap_tiles')
+        .setDisplaySize(worldWidth, borderThickness)
+        .setImmovable(true)
+        .refreshBody();
+
+    const leftBorder = borders.create(0, worldHeight/2, 'tilemap_tiles')
+        .setDisplaySize(borderThickness, worldHeight)
+        .setImmovable(true)
+        .refreshBody();
+
+    const rightBorder = borders.create(worldWidth, worldHeight/2, 'tilemap_tiles')
+        .setDisplaySize(borderThickness, worldHeight)
+        .setImmovable(true)
+        .refreshBody();
+
+    // Add collisions with all game entities
+    this.physics.add.collider(player, borders);
+    this.physics.add.collider(boars, borders);
+    this.physics.add.collider(foxes, borders);
+    this.physics.add.collider(cats, borders);
+    if (monster) {
+        this.physics.add.collider(monster, borders);
+    }
+
+    // Make borders visible
+    borders.getChildren().forEach(border => {
+        border.setTint(0x808080);
+        border.setAlpha(0.5);
+    });
+
+    // Enable keyboard input for movement
+    cursors = this.input.keyboard.createCursorKeys();
+}
+
+function takeDamage(amount) {
+    currentHealth = Math.max(0, currentHealth - amount);
+}
+
+// Add this function to handle healing (you can call it when needed)
+function heal(amount) {
+    currentHealth = Math.min(maxHealth, currentHealth + amount);
+}
+
+function update() {
+    const speed = 160; // Increased for smoother movement
+
+    // Reset velocity at the start of each update
+    player.setVelocity(0);
+
+     // Handle player movement with physics and sound
+     if (cursors.up.isDown || cursors.down.isDown || cursors.left.isDown || cursors.right.isDown) {
+        // Play running sound if not already playing
+        if (!runningSound.isPlaying) {
+            runningSound.play();
+        }
+        
+        if (cursors.up.isDown) {
+            player.setVelocityY(-speed);
+            player.anims.play('faune-run-down', true);
+        } 
+        else if (cursors.down.isDown) {
+            player.setVelocityY(speed);
+            player.anims.play('faune-run-up', true);
+        }
+        else if (cursors.left.isDown) {
+            player.setVelocityX(-speed);
+            player.anims.play('faune-left-side', true);
+            player.setFlipX(false);
+        }
+        else if (cursors.right.isDown) {
+            player.setVelocityX(speed);
+            player.anims.play('faune-left-side', true);
+            player.setFlipX(true);
+        }
+    }
+    else {
+        // Stop running sound when not moving
+        if (runningSound.isPlaying) {
+            runningSound.stop();
+        }
+        // Stop animations when not moving
+        player.anims.stop();
+    }
+
+  // Replace the boar movement code in update function
+boars.forEach(boar => {
+    const distance = Phaser.Math.Distance.Between(
+        boar.x, boar.y,
+        player.x, player.y
+    );
+
+    boar.healthBar.container.setPosition(boar.x - 16, boar.y - boar.height/2 - 10);
+
+    const CHASE_RADIUS = 20;  // Chase radius of 20 pixels
+    const MINIMUM_DISTANCE = 5; // Minimum distance to maintain
+
+    if (distance < CHASE_DISTANCE) {
+        boar.isChasing = true;
+        
+        if (distance > MINIMUM_DISTANCE) {
+            // Chase player
+
+            if (!boar.runSound) {
+                boar.runSound = boar.scene.sound.add('boar-sound', {
+                    volume: 0.2,
+                    loop: true,
+                    rate: 1.5
+                });
+            }
+
+            if (!boar.runSound.isPlaying) {
+                boar.runSound.play();
+            }
+            const angle = Phaser.Math.Angle.Between(
+                boar.x, boar.y,
+                player.x, player.y
+            );
+
+            boar.setVelocityX(Math.cos(angle) * BOAR_SPEED);
+            boar.setVelocityY(Math.sin(angle) * BOAR_SPEED);
+            boar.anims.play('boar-run', true);
+            
+            boar.setFlipX(player.x > boar.x);
+        } else {
+            if (boar.runSound && boar.runSound.isPlaying) {
+                boar.runSound.stop();
+            }
+            // Stop at minimum distance
+            boar.setVelocity(0);
+            boar.anims.play('boar-idle', true);
+        }
+    } else {
+        // Return to original position
+        const distanceToHome = Phaser.Math.Distance.Between(
+            boar.x, boar.y,
+            boar.originalPosition.x, boar.originalPosition.y
+        );
+
+        if (distanceToHome > 5) {
+            // Move back to original position
+            const angle = Phaser.Math.Angle.Between(
+                boar.x, boar.y,
+                boar.originalPosition.x, boar.originalPosition.y
+            );
+
+            if (!boar.runSound.isPlaying) {
+                boar.runSound.play();
+            }
+
+            boar.setVelocityX(Math.cos(angle) * BOAR_SPEED);
+            boar.setVelocityY(Math.sin(angle) * BOAR_SPEED);
+            boar.anims.play('boar-run', true);
+            
+            boar.setFlipX(boar.originalPosition.x > boar.x);
+        } else {
+
+            if (boar.runSound && boar.runSound.isPlaying) {
+                boar.runSound.stop();
+            }
+
+            // At home position
+            boar.setVelocity(0);
+            boar.isChasing = false;
+            boar.anims.play('boar-idle', true);
+            boar.setFlipX(false);
+        }
+    }
+});
+
+
+    foxes.forEach(fox => {
+        const distance = Phaser.Math.Distance.Between(
+            fox.x, fox.y,
+            player.x, player.y
+        );
+        fox.healthBar.container.setPosition(fox.x - 16, fox.y - fox.height/2 - 10);
+
+        const MINIMUM_DISTANCE = 40; // Foxes keep slightly more distance
+
+        if (distance < FOX_CHASE_DISTANCE) {
+            fox.isChasing = true;
+            
+            if (distance > MINIMUM_DISTANCE) {
+
+                if (!fox.runSound) {
+                    fox.runSound = fox.scene.sound.add('fox-sound', {
+                        volume: 0.2,
+                        loop: true,
+                        rate: 1.5
+                    });
+                }
+
+                if (!fox.runSound.isPlaying) {
+                    fox.runSound.play();
+                }
+                // Calculate direction to player
+                const angle = Phaser.Math.Angle.Between(
+                    fox.x, fox.y,
+                    player.x, player.y
+                );
+
+                // Move towards player
+                fox.setVelocityX(Math.cos(angle) * fox.speed);
+                fox.setVelocityY(Math.sin(angle) * fox.speed);
+                
+                // Play running animation
+                fox.anims.play('fox-run', true);
+                
+                // Update facing direction
+                if (player.x < fox.x) {
+                    fox.setFlipX(false);
+                } else {
+                    fox.setFlipX(true);
+                }
+            } else {
+                if (fox.runSound && fox.runSound.isPlaying) {
+                    fox.runSound.stop();
+                }
+                // Stop when too close to player
+                fox.setVelocity(0);
+                fox.anims.play('fox-idle', true);
+            }
+        } else if (fox.isChasing) {
+            // Return to original position
+            const distanceToHome = Phaser.Math.Distance.Between(
+                fox.x, fox.y,
+                fox.originalPosition.x, fox.originalPosition.y
+            );
+
+            if (distanceToHome > 5) {
+
+                if (fox.runSound && !fox.runSound.isPlaying) {
+                    fox.runSound.play();
+                }
+                const angle = Phaser.Math.Angle.Between(
+                    fox.x, fox.y,
+                    fox.originalPosition.x, fox.originalPosition.y
+                );
+
+                fox.setVelocityX(Math.cos(angle) * fox.speed);
+                fox.setVelocityY(Math.sin(angle) * fox.speed);
+                fox.anims.play('fox-run', true);
+                
+                if (fox.originalPosition.x < fox.x) {
+                    fox.setFlipX(false);
+                } else {
+                    fox.setFlipX(true);
+                }
+            } else {
+                if (fox.runSound && fox.runSound.isPlaying) {
+                    fox.runSound.stop();
+                }
+                fox.setVelocity(0);
+                fox.isChasing = false;
+                fox.anims.play('fox-idle', true);
+                fox.setFlipX(false);
+            }
+        } else {
+            // Idle state
+            fox.anims.play('fox-idle', false);
+            fox.setFlipX(false);
+        }
+    });
+
+
+    cats.forEach(cat => {
+        const distance = Phaser.Math.Distance.Between(
+            cat.x, cat.y,
+            player.x, player.y
+        );
+
+        cat.healthBar.container.setPosition(cat.x - 16, cat.y - cat.height/2 - 10);
+
+        const MINIMUM_DISTANCE = 35; // Cats keep medium distance
+
+        if (distance < CAT_CHASE_DISTANCE) {
+            cat.isChasing = true;
+            
+            if (distance > MINIMUM_DISTANCE) {
+
+
+                if (!cat.runSound) {
+                    cat.runSound = cat.scene.sound.add('cat-sound', {
+                        volume: 0.2,
+                        loop: true,
+                        rate: 1.5
+                    });
+                }
+
+                if (!cat.runSound.isPlaying) {
+                    cat.runSound.play();
+                }
+                // Calculate direction to player
+                const angle = Phaser.Math.Angle.Between(
+                    cat.x, cat.y,
+                    player.x, player.y
+                );
+
+                // Move towards player
+                cat.setVelocityX(Math.cos(angle) * cat.speed);
+                cat.setVelocityY(Math.sin(angle) * cat.speed);
+                
+                // Play running animation
+                cat.anims.play('cat-run', true);
+                
+                // Update facing direction
+                if (player.x < cat.x) {
+                    cat.setFlipX(true);
+                } else {
+                    cat.setFlipX(false);
+                }
+            } else {
+
+                if (cat.runSound && cat.runSound.isPlaying) {
+                    cat.runSound.stop();
+                }
+                // Stop when too close to player
+                cat.setVelocity(0);
+                cat.anims.play('cat-idle', true);
+            }
+        } else if (cat.isChasing) {
+            // Return to original position
+            const distanceToHome = Phaser.Math.Distance.Between(
+                cat.x, cat.y,
+                cat.originalPosition.x, cat.originalPosition.y
+            );
+
+            if (distanceToHome > 5) {
+                if (cat.runSound && !cat.runSound.isPlaying) {
+                    cat.runSound.play();
+                }
+                const angle = Phaser.Math.Angle.Between(
+                    cat.x, cat.y,
+                    cat.originalPosition.x, cat.originalPosition.y
+                );
+
+                cat.setVelocityX(Math.cos(angle) * cat.speed);
+                cat.setVelocityY(Math.sin(angle) * cat.speed);
+                cat.anims.play('cat-run', true);
+                
+                if (cat.originalPosition.x < cat.x) {
+                    cat.setFlipX(true);
+                } else {
+                    cat.setFlipX(false);
+                }
+            } else {
+                if (cat.runSound && cat.runSound.isPlaying) {
+                    cat.runSound.stop();
+                }
+                cat.setVelocity(0);
+                cat.isChasing = false;
+                cat.anims.play('cat-idle', true);
+                cat.setFlipX(true);
+            }
+        } else {
+            // Idle state
+            cat.anims.play('cat-idle', true);
+            cat.setFlipX(true);
+        }
+    });
+
+    if (monster && monster.active) {
+    const distance = Phaser.Math.Distance.Between(
+        monster.x, monster.y,
+        player.x, player.y
+    );
+
+    // Update health bar position
+    monster.healthBar.container.setPosition(
+        monster.x - 16, 
+        monster.y - monster.height/2 - 10
+    );
+
+    if (distance < MONSTER_CHASE_DISTANCE) {
+        monster.isChasing = true;
+        if (!monsterSound.isPlaying) {
+            monsterSound.play();
+        }
+        // Calculate angle and direction
+        const angle = Phaser.Math.Angle.Between(
+            monster.x, monster.y,
+            player.x, player.y
+        );
+
+        // Set velocity based on angle
+        monster.setVelocityX(Math.cos(angle) * monster.speed);
+        monster.setVelocityY(Math.sin(angle) * monster.speed);
+
+        // Determine animation based on movement direction
+        const absX = Math.abs(monster.body.velocity.x);
+        const absY = Math.abs(monster.body.velocity.y);
+
+        if (absY > absX) {
+            // Moving more vertically
+            if (monster.body.velocity.y < 0) {
+                monster.anims.play('monster-run-up', true);
+                monster.setFlipX(false);
+            } else {
+                monster.anims.play('monster-run-down', true);
+                monster.setFlipX(false);
+            }
+        } else {
+            // Moving more horizontally
+            monster.anims.play('monster-run-left', true);
+            monster.setFlipX(monster.body.velocity.x > 0); // Flip if moving right
+        }
+    } else if (monster.isChasing) {
+        // Return to original position logic
+        const distanceToHome = Phaser.Math.Distance.Between(
+            monster.x, monster.y,
+            monster.originalPosition.x, monster.originalPosition.y
+        );
+
+        if (distanceToHome > 5) {
+            const angle = Phaser.Math.Angle.Between(
+                monster.x, monster.y,
+                monster.originalPosition.x, monster.originalPosition.y
+            );
+
+            monster.setVelocityX(Math.cos(angle) * monster.speed);
+            monster.setVelocityY(Math.sin(angle) * monster.speed);
+
+            // Use same directional animation logic for returning
+            const absX = Math.abs(monster.body.velocity.x);
+            const absY = Math.abs(monster.body.velocity.y);
+
+            if (absY > absX) {
+                if (monster.body.velocity.y < 0) {
+                    monster.anims.play('monster-run-up', true);
+                    monster.setFlipX(false);
+                } else {
+                    monster.anims.play('monster-run-down', true);
+                    monster.setFlipX(false);
+                }
+            } else {
+                monster.anims.play('monster-run-left', true);
+                monster.setFlipX(monster.body.velocity.x > 0);
+            }
+        } else {
+            monster.setVelocity(0);
+            monster.isChasing = false;
+            monster.anims.stop();
+        }
+    } else {
+
+        if (monsterSound.isPlaying) {
+            monsterSound.stop();
+        }
+        // Idle state - use first frame of down animation
+        monster.setVelocity(0);
+        monster.anims.stop();
+        monster.setTexture('Monster', 'run_down_1.png');
+    }
+}
+
+if (this.input.keyboard.addKey('F').isDown) {
+    isAttacking = true;
+    player.anims.play('faune-fight-left', true);
+    
+    // Reset attacking state when animation completes
+    // player.once('animationcomplete', () => {
+    //     isAttacking = false;
+    // });
+
+    if (!punchSound.isPlaying) {
+        punchSound.play();
+    }
+
+    // Check for enemies in attack range
+    const ATTACK_RANGE = 50;
+    
+    // Check boars
+    boars.forEach(boar => {
+        if (Phaser.Math.Distance.Between(player.x, player.y, boar.x, boar.y) < ATTACK_RANGE)  {
+            damageAnimal(boar, boar.health * 0.2);
+        }
+    });
+    
+    // // Check foxes
+    // foxes.forEach(fox => {
+    //     if (Phaser.Math.Distance.Between(player.x, player.y, fox.x, fox.y) < ATTACK_RANGE) {
+    //         damageAnimal(fox, 25);
+    //     }
+    // });
+    
+    // // Check cats
+    // cats.forEach(cat => {
+    //     if (Phaser.Math.Distance.Between(player.x, player.y, cat.x, cat.y) < ATTACK_RANGE) {
+    //         damageAnimal(cat, 25);s
+    //     }
+    // });
+    
+    // // Check monster
+    // if (monster && monster.active && 
+    //     Phaser.Math.Distance.Between(player.x, player.y, monster.x, monster.y) < ATTACK_RANGE) {
+    //     damageAnimal(monster, 25);
+    // }
+}
+
+boars.forEach(boar => {
+    if (Phaser.Math.Distance.Between(player.x, player.y, boar.x, boar.y) < CHASE_DISTANCE) {
+        handlePlayerDamage(this, maxHealth * 0.05); // Decrease by 1/20th of max health
+    }
+});
+
+foxes.forEach(fox => {
+        if (Phaser.Math.Distance.Between(player.x, player.y, fox.x, fox.y) < 90) {
+            if (hasBoarGem) {
+                // With boar gem, deal 1/4 damage
+                damageAnimal(fox, fox.health * 0.25);
+            } else {
+                // Without boar gem, deal 1/15 damage
+                damageAnimal(fox, fox.health * (1/15));
+            }
+        }
+    });
+
+foxes.forEach(fox => {
+    let distance = Phaser.Math.Distance.Between(player.x, player.y, fox.x, fox.y) < CHASE_DISTANCE;
+    if (distance) {
+        if(hasBoarGem) {
+            handlePlayerDamage(this, maxHealth * 0.05); // Decrease by 1/20th of max health
+        } else {
+            handlePlayerDamage(this, maxHealth * 0.1); // Decrease by 1/10th of max health
+        }
+    }
+});
+
+
+cats.forEach(cat => {
+    if (Phaser.Math.Distance.Between(player.x, player.y, cat.x, cat.y) < 120) {
+        if (hasFoxGem) {
+            // With boar gem, deal 1/4 damage
+            damageAnimal(cat, cat.health * 0.15);
+        } else {
+            // Without boar gem, deal 1/15 damage
+            damageAnimal(cat, cat.health * (1/10));
+        }
+    }
+});
+
+cats.forEach(cat => {
+    let distance = Phaser.Math.Distance.Between(player.x, player.y, cat.x, cat.y) < CHASE_DISTANCE;
+    if (distance) {
+        if(hasFoxGem) {
+            handlePlayerDamage(this, maxHealth * 0.05); // Decrease by 1/20th of max health
+        } else {
+            handlePlayerDamage(this, maxHealth * 0.2); // Decrease by 1/10th of max health
+        }
+    }
+});
+
+if (monster && monster.active) {
+    // Player attacking monster
+    if (this.input.keyboard.addKey('F').isDown) {
+        if (Phaser.Math.Distance.Between(player.x, player.y, monster.x, monster.y) < 120) {
+            if (hasBoarGem && hasFoxGem && hasCatGem) {
+                // With all gems, deal more damage
+                damageAnimal(monster, monster.health * 0.05);  // 1/20th damage
+            } else {
+                // Without all gems, deal less damage
+                damageAnimal(monster, monster.health * (1/30));  // 1/30th damage
+            }
+        }
+    }
+
+    // Monster damaging player
+    const distanceToPlayer = Phaser.Math.Distance.Between(
+        player.x, player.y,
+        monster.x, monster.y
+    );
+
+    if (distanceToPlayer < MONSTER_CHASE_DISTANCE) {
+        if (hasBoarGem && hasFoxGem && hasCatGem) {
+            // With all gems, take less damage
+            handlePlayerDamage(this, maxHealth * 0.05);  // 1/20th damage
+        } else {
+            // Without all gems, take more damage
+            handlePlayerDamage(this, maxHealth * 0.25);  // 1/4th damage
+        }
+    }
+}
+
+// // Modify the movement code to not override attack animation
+// if (!isAttacking) {
+//     if (cursors.up.isDown) {
+//         // ... existing movement code ...
+//     }
+//     // ... rest of movement code ...
+// }
+
+}
+
+function showPopup(scene, message) {
+
+    if (isShowingPopup) {
+        hidePopup();
+    }
+
+
+    // Create semi-transparent background
+    popupBackground = scene.add.rectangle(
+        scene.cameras.main.centerX,
+        scene.cameras.main.centerY,
+        400,
+        100,
+        0x000000,
+        0.7
+    );
+    popupBackground.setScrollFactor(0);
+    popupBackground.setDepth(200);
+
+    // Create popup text
+    popupText = scene.add.text(
+        scene.cameras.main.centerX,
+        scene.cameras.main.centerY,
+        message,
+        {
+            font: '24px Arial',
+            fill: '#ffffff',
+            align: 'center',
+            backgroundColor: '#000000',
+            padding: { x: 20, y: 10 }
+        }
+    );
+    popupText.setOrigin(0.5);
+    popupText.setScrollFactor(0);
+    popupText.setDepth(201);
+
+    isShowingPopup = true;
+
+    // Hide popup after 2 seconds
+    scene.time.delayedCall(2000, hidePopup, [], scene);
+}
+
+// Add this function to hide popup
+function hidePopup() {
+    if (popupText) {
+        popupText.destroy();
+        popupBackground.destroy();
+        isShowingPopup = false;
+    }
+}
+
+const BOX_INTERACTION_DISTANCE = 15;
+
+function handleBoxCollision(player, magicBox) {
+    // Store scene reference
+    const scene = magicBox.scene;
+    
+    const distance = Phaser.Math.Distance.Between(
+        player.x, player.y,
+        magicBox.x, magicBox.y
+    );
+
+    if (distance > BOX_INTERACTION_DISTANCE) {
+        if (isShowingPopup) {
+            hidePopup();
+        }
+        // return;
+    }
+
+    // Check if all boars are defeated
+    if (boars.length > 0) {
+        // Show message every time player is in range and boars exist
+        if(!isShowingPopup) {
+            showPopup(scene, 'Defeat all boars first!');
+        }
+        // showPopup(scene, 'Defeat all boars first!');
+        // return;
+    }
+
+    console.log(magicBox.isOpened+" " + magicBox.type, "opened", scene.input.keyboard.addKey('SPACE').isDown, magicBox.spaceWasDown);
+
+    // if (!magicBox.isOpened && scene.input.keyboard.addKey('SPACE').isDown) {
+    //     if (!magicBox.spaceWasDown) { // Prevent holding space
+    //         if (magicBox.type === 'boar_1'|| magicBox.type === 'boar_2' ) {
+    //             startQuiz(scene, magicBox);
+    //         }
+    //         // magicBox.isOpened = true;
+    //         // magicBox.anims.play('box-open');
+            
+    //         // const message = magicBox.type === 'boar_1' ? 
+    //         //     'You received Boar Gem I and 50 health!' :
+    //         //     'You received Boar Gem II and 50 health!';
+                
+    //         // showPopup(scene, message);
+    //         // heal(50);
+            
+    //         // scene.tweens.add({
+    //         //     targets: magicBox,
+    //         //     y: magicBox.y - 10,
+    //         //     duration: 100,
+    //         //     yoyo: true,
+    //         //     repeat: 0
+    //         // });
+    //     }
+    //     magicBox.spaceWasDown = true;
+    // } else if (!magicBox.isOpened && !isShowingPopup) {
+    //     showPopup(scene, 'Press SPACE to Start the Quiz!');
+    // }
+
+    if(magicBox.type === 'cat_1'){
+        if (!hasBoarGem) {
+            if (!isShowingPopup) {
+                showPopup(scene, 'Collect Boar Gem I first!');
+            }
+        }
+        if (cats.length > 0) {
+            if (!isShowingPopup) {
+                showPopup(scene, 'Defeat all cats first!');
+            }
+        }
+    }
+
+
+    if (magicBox.type === 'fox_1') {
+        if (!hasBoarGem) {
+            if (!isShowingPopup) {
+                showPopup(scene, 'Collect both Boar Gems first!');
+            }
+        }
+        if (foxes.length > 0) {
+            if (!isShowingPopup) {
+                showPopup(scene, 'Defeat all foxes first!');
+            }
+        }
+    
+    }
+
+    if (magicBox.type === 'monster_1') {
+        if (!hasBoarGem || !hasFoxGem || !hasCatGem) {
+            if (!isShowingPopup) {
+                showPopup(scene, 'Collect all other gems first!');
+            }
+            return;
+        }
+        if (monster && monster.active) {
+            if (!isShowingPopup) {
+                showPopup(scene, 'Defeat the monster first!');
+            }
+            return;
+        }
+    }
+
+  
+    if (!magicBox.isOpened && scene.input.keyboard.addKey('SPACE').isDown) {
+        if (!magicBox.spaceWasDown) {
+            if (magicBox.type === 'monster_1') {
+                startMonsterQuiz(scene, magicBox);
+            } 
+            else if (magicBox.type === 'cat_1') {
+                startCatQuiz(scene, magicBox);
+            } else if (magicBox.type === 'fox_1') {
+                startFoxQuiz(scene, magicBox);
+            } else if (magicBox.type === 'boar_1' || magicBox.type === 'boar_2') {
+                startQuiz(scene, magicBox);
+            }
+        }
+        magicBox.spaceWasDown = true;
+    } else if (!magicBox.isOpened && !isShowingPopup) {
+        showPopup(scene, 'Press SPACE to Start the Quiz!');
+    }
+
+    if (!scene.input.keyboard.addKey('SPACE').isDown) {
+        magicBox.spaceWasDown = false;
+    }
+
+}
+
+
+// Add new function for settings menu
+function createSettingsMenu(scene) {
+    // Container for settings menu
+    const menuContainer = document.createElement('div');
+    menuContainer.style.position = 'absolute';
+    menuContainer.style.top = '50%';
+    menuContainer.style.left = '50%';
+    menuContainer.style.transform = 'translate(-50%, -50%)';
+    menuContainer.style.backgroundColor = 'rgba(0, 0, 0, 0.9)';
+    menuContainer.style.padding = '20px';
+    menuContainer.style.borderRadius = '10px';
+    menuContainer.style.color = 'white';
+    menuContainer.style.minWidth = '300px';
+    menuContainer.style.zIndex = '1000';
+
+    // Title
+    const title = document.createElement('h2');
+    title.textContent = 'Settings';
+    title.style.textAlign = 'center';
+    title.style.marginBottom = '20px';
+    menuContainer.appendChild(title);
+
+    // Music Volume
+    const musicSection = document.createElement('div');
+    musicSection.style.marginBottom = '15px';
+    
+    const musicLabel = document.createElement('label');
+    musicLabel.textContent = 'Music Volume: ';
+    const musicSlider = document.createElement('input');
+    musicSlider.type = 'range';
+    musicSlider.min = '0';
+    musicSlider.max = '100';
+    musicSlider.value = '30';
+    musicSlider.oninput = () => {
+        scene.sound.get('background-music').setVolume(musicSlider.value / 100);
+    };
+    
+    musicSection.appendChild(musicLabel);
+    musicSection.appendChild(musicSlider);
+    menuContainer.appendChild(musicSection);
+
+    // Sound Effects Volume
+    const soundSection = document.createElement('div');
+    soundSection.style.marginBottom = '15px';
+    
+    const soundLabel = document.createElement('label');
+    soundLabel.textContent = 'Sound Effects: ';
+    const soundSlider = document.createElement('input');
+    soundSlider.type = 'range';
+    soundSlider.min = '0';
+    soundSlider.max = '100';
+    soundSlider.value = '50';
+    soundSlider.oninput = () => {
+        // Adjust all sound effects volume
+        const sounds = [runningSound, punchSound, hurtSound, monsterSound];
+        sounds.forEach(sound => {
+            if (sound) sound.setVolume(soundSlider.value / 100);
+        });
+    };
+    
+    soundSection.appendChild(soundLabel);
+    soundSection.appendChild(soundSlider);
+    menuContainer.appendChild(soundSection);
+
+    // Controls Section
+    const controlsSection = document.createElement('div');
+    controlsSection.style.marginBottom = '15px';
+    
+    const controlsTitle = document.createElement('h3');
+    controlsTitle.textContent = 'Controls';
+    controlsSection.appendChild(controlsTitle);
+    
+    const controlsList = document.createElement('ul');
+    controlsList.style.listStyle = 'none';
+    controlsList.style.padding = '0';
+    
+    const controls = [
+        'Arrow Keys - Move',
+        'F - Attack',
+        'SPACE - Interact with boxes'
+    ];
+    
+    controls.forEach(control => {
+        const li = document.createElement('li');
+        li.textContent = control;
+        li.style.marginBottom = '5px';
+        controlsList.appendChild(li);
+    });
+    
+    controlsSection.appendChild(controlsList);
+    menuContainer.appendChild(controlsSection);
+
+    // Close Button
+    const closeButton = document.createElement('button');
+    closeButton.textContent = 'Close';
+    closeButton.style.display = 'block';
+    closeButton.style.margin = '20px auto 0';
+    closeButton.style.padding = '8px 20px';
+    closeButton.style.backgroundColor = '#ff4444';
+    closeButton.style.border = 'none';
+    closeButton.style.borderRadius = '5px';
+    closeButton.style.color = 'white';
+    closeButton.style.cursor = 'pointer';
+    
+    closeButton.onclick = () => {
+        document.body.removeChild(menuContainer);
+    };
+    
+    menuContainer.appendChild(closeButton);
+    document.body.appendChild(menuContainer);
+}
+
+// Add quiz functions
+function startQuiz(scene, magicBox) {
+    magicBox.currentQuiz = 0;
+    magicBox.correctAnswers = 0;
+    askMCQ(scene, magicBox);
+}
+
+// Modify the askMCQ function (and similar functions for other quizzes)
+function askMCQ(scene, magicBox) {
+    if (magicBox.currentQuiz >= QUIZ_TOTAL) {
+        finishQuiz(scene, magicBox);
+        return;
+    }
+
+    const quiz = BOAR_QUIZZES[magicBox.type][magicBox.currentQuiz];
+    
+    // Create the logo container
+    const logoContainer = createQuizContainer(scene);
+    
+    // Create MCQ container with transparent background
+    const mcqContainer = document.createElement('div');
+    // mcqContainer.style.backgroundColor = 'rgba(0, 0, 0, 0.7)';
+    mcqContainer.style.padding = '20px';
+    mcqContainer.style.borderRadius = '10px';
+    mcqContainer.style.color = 'black';
+    mcqContainer.style.width = '80%';  // Take up 80% of logo width
+    mcqContainer.style.maxWidth = '500px';
+    mcqContainer.style.margin = 'auto';
+
+    // Question text
+    const questionText = document.createElement('p');
+    questionText.textContent = `Question ${magicBox.currentQuiz + 1}/10: ${quiz.question}`;
+    questionText.style.textAlign = 'center';
+    questionText.style.fontSize = '18px';
+    mcqContainer.appendChild(questionText);
+
+    // Options
+    quiz.options.forEach((option, index) => {
+        const button = document.createElement('button');
+        button.textContent = option;
+        button.style.display = 'block';
+        button.style.width = '100%';
+        button.style.margin = '10px 0';
+        button.style.padding = '10px';
+        button.style.backgroundColor = 'rgba(255, 255, 255, 0.1)';
+        button.style.border = '1px solid black';
+        button.style.color = 'black';
+        button.style.cursor = 'pointer';
+        button.style.borderRadius = '5px';
+        
+        button.onmouseover = () => {
+            button.style.backgroundColor = 'rgba(255, 255, 255, 0.3)';
+        };
+        button.onmouseout = () => {
+            button.style.backgroundColor = 'rgba(255, 255, 255, 0.1)';
+        };
+        
+        button.onclick = () => handleAnswer(scene, magicBox, index === quiz.correct);
+        mcqContainer.appendChild(button);
+    });
+
+    // Add MCQ container to logo container
+    logoContainer.appendChild(mcqContainer);
+    document.body.appendChild(logoContainer);
+    magicBox.mcqContainer = logoContainer;
+}
+
+function handleAnswer(scene, magicBox, isCorrect) {
+    document.body.removeChild(magicBox.mcqContainer);
+    
+    if (isCorrect) {
+        magicBox.correctAnswers++;
+        showPopup(scene, 'Correct!');
+    } else {
+        showPopup(scene, 'Incorrect!');
+    }
+
+    magicBox.currentQuiz++;
+    scene.time.delayedCall(1000, () => {
+        askMCQ(scene, magicBox);
+    });
+}
+
+
+// Add fox quiz functions
+function startFoxQuiz(scene, magicBox) {
+    magicBox.currentQuiz = 0;
+    magicBox.correctAnswers = 0;
+    askFoxMCQ(scene, magicBox);
+}
+
+function askFoxMCQ(scene, magicBox) {
+    if (magicBox.currentQuiz >= QUIZ_TOTAL) {
+        finishFoxQuiz(scene, magicBox);
+        return;
+    }
+
+    const quiz = FOX_QUIZZES.fox_1[magicBox.currentQuiz];
+    
+    // Create MCQ container (reuse existing MCQ UI code)
+    const mcqContainer = document.createElement('div');
+    mcqContainer.style.position = 'absolute';
+    mcqContainer.style.top = '50%';
+    mcqContainer.style.left = '50%';
+    mcqContainer.style.transform = 'translate(-50%, -50%)';
+    mcqContainer.style.backgroundColor = 'rgba(0, 0, 0, 0.8)';
+    mcqContainer.style.padding = '20px';
+    mcqContainer.style.borderRadius = '10px';
+    mcqContainer.style.color = 'white';
+
+    const questionText = document.createElement('p');
+    questionText.textContent = `Question ${magicBox.currentQuiz + 1}/10: ${quiz.question}`;
+    mcqContainer.appendChild(questionText);
+
+    quiz.options.forEach((option, index) => {
+        const button = document.createElement('button');
+        button.textContent = option;
+        button.style.display = 'block';
+        button.style.margin = '5px';
+        button.style.padding = '5px 10px';
+        button.onclick = () => handleFoxAnswer(scene, magicBox, index === quiz.correct);
+        mcqContainer.appendChild(button);
+    });
+
+    document.body.appendChild(mcqContainer);
+    magicBox.mcqContainer = mcqContainer;
+}
+
+function handleFoxAnswer(scene, magicBox, isCorrect) {
+    document.body.removeChild(magicBox.mcqContainer);
+    
+    if (isCorrect) {
+        magicBox.correctAnswers++;
+        showPopup(scene, 'Correct!');
+    } else {
+        showPopup(scene, 'Incorrect!');
+    }
+
+    magicBox.currentQuiz++;
+    scene.time.delayedCall(1000, () => {
+        askFoxMCQ(scene, magicBox);
+    });
+}
+
+// Update the finishFoxQuiz function
+function finishFoxQuiz(scene, magicBox) {
+    if (magicBox.correctAnswers >= QUIZ_THRESHOLD) {
+        magicBox.isOpened = true;
+        magicBox.anims.play('box-open');
+        boxOpenSound.play();
+        gemsCollected.fox_1 = true;
+        hasFoxGem = true;
+        showPopup(scene, `Congratulations! You got ${magicBox.correctAnswers}/10 correct and earned the Fox Gem!`);
+        heal(50);
+    } else {
+        showPopup(scene, `You got ${magicBox.correctAnswers}/10 correct. Need at least 6 to get the gem. Try again!`);
+        magicBox.currentQuiz = 0;
+        magicBox.correctAnswers = 0;
+    }
+}
+
+// Add cat quiz functions
+function startCatQuiz(scene, magicBox) {
+    magicBox.currentQuiz = 0;
+    magicBox.correctAnswers = 0;
+    askCatMCQ(scene, magicBox);
+}
+
+function askCatMCQ(scene, magicBox) {
+    if (magicBox.currentQuiz >= QUIZ_TOTAL) {
+        finishCatQuiz(scene, magicBox);
+        return;
+    }
+
+    const quiz = CAT_QUIZZES.cat_1[magicBox.currentQuiz];
+    
+    const mcqContainer = document.createElement('div');
+    mcqContainer.style.position = 'absolute';
+    mcqContainer.style.top = '50%';
+    mcqContainer.style.left = '50%';
+    mcqContainer.style.transform = 'translate(-50%, -50%)';
+    mcqContainer.style.backgroundColor = 'rgba(0, 0, 0, 0.8)';
+    mcqContainer.style.padding = '20px';
+    mcqContainer.style.borderRadius = '10px';
+    mcqContainer.style.color = 'white';
+
+    const questionText = document.createElement('p');
+    questionText.textContent = `Question ${magicBox.currentQuiz + 1}/10: ${quiz.question}`;
+    mcqContainer.appendChild(questionText);
+
+    quiz.options.forEach((option, index) => {
+        const button = document.createElement('button');
+        button.textContent = option;
+        button.style.display = 'block';
+        button.style.margin = '5px';
+        button.style.padding = '5px 10px';
+        button.onclick = () => handleCatAnswer(scene, magicBox, index === quiz.correct);
+        mcqContainer.appendChild(button);
+    });
+
+    document.body.appendChild(mcqContainer);
+    magicBox.mcqContainer = mcqContainer;
+}
+
+function handleCatAnswer(scene, magicBox, isCorrect) {
+    document.body.removeChild(magicBox.mcqContainer);
+    
+    if (isCorrect) {
+        magicBox.correctAnswers++;
+        showPopup(scene, 'Correct!');
+    } else {
+        showPopup(scene, 'Incorrect!');
+    }
+
+    magicBox.currentQuiz++;
+    scene.time.delayedCall(1000, () => {
+        askCatMCQ(scene, magicBox);
+    });
+}
+
+function finishCatQuiz(scene, magicBox) {
+    if (magicBox.correctAnswers >= QUIZ_THRESHOLD) {
+        magicBox.isOpened = true;
+        magicBox.anims.play('box-open');
+        boxOpenSound.play();
+        showPopup(scene, `Congratulations! You got ${magicBox.correctAnswers}/10 correct and earned the Cat Gem!`);
+        heal(50);
+    } else {
+        showPopup(scene, `You got ${magicBox.correctAnswers}/10 correct. Need at least 6 to get the gem. Try again!`);
+        magicBox.currentQuiz = 0;
+        magicBox.correctAnswers = 0;
+    }
+}
+// Add monster quiz functions
+function startMonsterQuiz(scene, magicBox) {
+    magicBox.currentQuiz = 0;
+    magicBox.correctAnswers = 0;
+    askMonsterMCQ(scene, magicBox);
+}
+
+function askMonsterMCQ(scene, magicBox) {
+    if (magicBox.currentQuiz >= QUIZ_TOTAL) {
+        finishMonsterQuiz(scene, magicBox);
+        return;
+    }
+
+    const quiz = MONSTER_QUIZZES.monster_1[magicBox.currentQuiz];
+    
+    const mcqContainer = document.createElement('div');
+    mcqContainer.style.position = 'absolute';
+    mcqContainer.style.top = '50%';
+    mcqContainer.style.left = '50%';
+    mcqContainer.style.transform = 'translate(-50%, -50%)';
+    mcqContainer.style.backgroundColor = 'rgba(0, 0, 0, 0.8)';
+    mcqContainer.style.padding = '20px';
+    mcqContainer.style.borderRadius = '10px';
+    mcqContainer.style.color = 'white';
+
+    const questionText = document.createElement('p');
+    questionText.textContent = `Question ${magicBox.currentQuiz + 1}/10: ${quiz.question}`;
+    mcqContainer.appendChild(questionText);
+
+    quiz.options.forEach((option, index) => {
+        const button = document.createElement('button');
+        button.textContent = option;
+        button.style.display = 'block';
+        button.style.margin = '5px';
+        button.style.padding = '5px 10px';
+        button.onclick = () => handleMonsterAnswer(scene, magicBox, index === quiz.correct);
+        mcqContainer.appendChild(button);
+    });
+
+    document.body.appendChild(mcqContainer);
+    magicBox.mcqContainer = mcqContainer;
+}
+
+function handleMonsterAnswer(scene, magicBox, isCorrect) {
+    document.body.removeChild(magicBox.mcqContainer);
+    
+    if (isCorrect) {
+        magicBox.correctAnswers++;
+        showPopup(scene, 'Correct!');
+    } else {
+        showPopup(scene, 'Incorrect!');
+    }
+
+    magicBox.currentQuiz++;
+    scene.time.delayedCall(1000, () => {
+        askMonsterMCQ(scene, magicBox);
+    });
+}
+
+function finishMonsterQuiz(scene, magicBox) {
+    if (magicBox.correctAnswers >= QUIZ_THRESHOLD) {
+        magicBox.isOpened = true;
+        magicBox.anims.play('box-open');
+        gemsCollected.monster_1 = true;
+        boxOpenSound.play();
+        hasMonsterGem = true;
+        showPopup(scene, `Congratulations! You got ${magicBox.correctAnswers}/10 correct and earned the Monster Gem!`);
+        heal(50);
+    } else {
+        showPopup(scene, `You got ${magicBox.correctAnswers}/10 correct. Need at least 6 to get the gem. Try again!`);
+        magicBox.currentQuiz = 0;
+        magicBox.correctAnswers = 0;
+    }
+}
+
+// Update the finishQuiz function
+function finishQuiz(scene, magicBox) {
+    if (magicBox.correctAnswers >= QUIZ_THRESHOLD) {
+        magicBox.isOpened = true;
+        magicBox.anims.play('box-open');
+        boxOpenSound.play();
+        const gemNumber = magicBox.type === 'boar_1' ? 'I' : 'II';
+        gemsCollected[magicBox.type] = true;
+        
+        // Check if both boar gems are collected
+        if (gemsCollected.boar_1 && gemsCollected.boar_2) {
+            hasBoarGem = true;
+            showPopup(scene, `Congratulations! You've collected both Boar Gems and unlocked enhanced fox damage!`);
+        } else {
+            showPopup(scene, `Congratulations! You got ${magicBox.correctAnswers}/10 correct and earned the Boar Gem ${gemNumber}!`);
+        }
+        heal(50);
+    } else {
+        showPopup(scene, `You got ${magicBox.correctAnswers}/10 correct. Need at least 6 to get the gem. Try again!`);
+        magicBox.currentQuiz = 0;
+        magicBox.correctAnswers = 0;
+    }
+}
+
+function createHealthBar(scene, parent, maxHealth) {
+    const width = 32;
+    const height = 3;
+    const padding = 2;
+
+    // Create the background (red)
+    const background = scene.add.rectangle(0, 0, width, height, 0xff0000);
+    // Create the health bar (green)
+    const healthBar = scene.add.rectangle(0, 0, width, height, 0x00ff00);
+
+    // Create a container to group the health bar parts
+    const container = scene.add.container(0, 0, [background, healthBar]);
+    
+    // Position above the parent sprite
+    container.setPosition(parent.x, parent.y - parent.height/2 - 10);
+    container.setDepth(100);
+
+    // Update function for the health bar
+    const updateHealth = (currentHealth) => {
+        const healthPercent = Phaser.Math.Clamp(currentHealth / maxHealth, 0, 1);
+        healthBar.width = width * healthPercent;
+    };
+
+    return { container, updateHealth };
+}
+
+function damageAnimal(animal, amount) {
+    // Round health to 2 decimal places after damage
+    animal.health = Math.max(0, Math.round((animal.health - amount) * 100) / 100);
+    animal.healthBar.updateHealth(animal.health);
+    
+    // Add red flash effect
+    animal.setTint(0xff0000);
+    setTimeout(() => {
+        animal.clearTint();
+    }, FLASH_DURATION);
+    // console.log(`Animal health: ${animal.health.toFixed(1)}`);
+
+    
+    if (animal.health.toFixed(1) <= 0) {
+        // Remove health bar
+        animal.healthBar.container.destroy();
+        
+        // If it's a boar, remove it from the boars array
+        if (boars.includes(animal)) {
+            if (animal.runSound) {
+                animal.runSound.stop();
+                animal.runSound.destroy();
+            }
+            boars = boars.filter(boar => boar !== animal);
+        }
+        // If it's a fox, remove it from the foxes array
+        else if (foxes.includes(animal)) {
+            if (animal.runSound) {
+                animal.runSound.stop();
+                animal.runSound.destroy();
+            }
+            foxes = foxes.filter(fox => fox !== animal);
+        }
+        // If it's a cat, remove it from the cats array
+        else if (cats.includes(animal)) {
+            if (animal.runSound) {
+                animal.runSound.stop();
+                animal.runSound.destroy();
+            }
+            cats = cats.filter(cat => cat !== animal);
+        }
+        else if (animal === monster) {
+            if (monsterSound) {
+                monsterSound.stop();
+            }
+            monster.active = false;  // Deactivate monster
+        }
+        
+        // Add death effect
+        animal.scene.tweens.add({
+            targets: animal,
+            alpha: 0,
+            duration: 200,
+            onComplete: () => {
+                animal.destroy();
+            }
+        });
+    }
+}
+
+function handlePlayerDamage(scene, amount) {
+    const currentTime = scene.time.now;
+    
+    if (currentTime - lastDamageTime >= DAMAGE_COOLDOWN) {
+        currentHealth = Math.max(0, currentHealth - amount);
+        lastDamageTime = currentTime;
+        
+        if (!hurtSound.isPlaying) {
+            hurtSound.play();
+        }
+
+        // Add red flash effect to player
+        player.setTint(0xff0000);
+        setTimeout(() => {
+            player.clearTint();
+        }, FLASH_DURATION);
+
+        console.log(`Player health: ${currentHealth.toFixed(1)}`);
+        
+        // Check if player died
+        if (parseInt(currentHealth) <= 0) {
+            // Disable player controls and movement
+            cursors.up.reset();
+            cursors.down.reset();
+            cursors.left.reset();
+            cursors.right.reset();
+            player.body.setVelocity(0);
+            player.body.setImmovable(true);
+            
+            console.log('Player is dead!');
+            
+            // Play death animation
+            player.anims.play('faune-death', true);
+            
+            // Add fade out effect after animation completes
+            player.once('animationcomplete', () => {
+                scene.tweens.add({
+                    targets: player,
+                    alpha: 0,
+                    duration: 500,
+                    onComplete: () => {
+                        // Clean up everything related to player
+                        if (player.healthBar) {
+                            player.healthBar.destroy();
+                        }
+                        showPopup(scene, 'Game Over!');
+                        player.destroy(true);
+                        // Optional: Add restart button or reload game
+                        const restartButton = document.createElement('button');
+                        restartButton.innerHTML = 'Restart Game';
+                        restartButton.style.position = 'absolute';
+                        restartButton.style.top = '60%';
+                        restartButton.style.left = '50%';
+                        restartButton.style.transform = 'translate(-50%, -50%)';
+                        restartButton.onclick = () => {
+                            document.body.removeChild(restartButton);
+                            location.reload();
+                        };
+                        document.body.appendChild(restartButton);
+                    }
+                });
+            });
+        }
+    }
+}
+
+    </script>
+</body>
+</html>
